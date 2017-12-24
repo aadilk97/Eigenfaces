@@ -1,12 +1,13 @@
 import cv2
 import numpy as np
-import dlib
 import os
 import math
 import matplotlib.pyplot as plt
 from scipy.linalg import eigh as E
 
-from imutils import face_utils
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 def show_image(image):
 	image = np.reshape(image, (112, 92))
@@ -19,6 +20,8 @@ unknown_paths = []
 base_path = '/Users/aadil/Downloads/att_faces/s'
 
 index = -1
+index2 = -1
+Y_train = np.zeros(190)
 Y_test = np.zeros(190)
 images_per_person = 5
 
@@ -28,6 +31,8 @@ for t in range(1, 39):
 	for filename in os.listdir(path):
 		if(count < images_per_person):
 			count += 1
+			index2 += 1
+			Y_train[index2] = t
 			train_paths.append(os.path.join(os.path.sep, path, filename))
 		else: 
 			index += 1
@@ -68,14 +73,6 @@ eigenvec = eigenvec[:, 0:num_eigenvec]
 ## Projecting the images to the eigenspace
 X_transformed = np.matmul(eigenvec.T, X)
 
-# for i in range(0, 10):
-# 	eigenface = np.reshape(eigenvec[:, -i-1], (112, 92))
-# 	plt.imshow(eigenface, cmap='gray')
-# 	plt.show()
-
-
-## Repeating the process of test_images
-
 X_test = np.zeros((0, 10304))
 
 for i in range(len(test_paths)):
@@ -106,7 +103,6 @@ for i in range(len(train_paths)):
 
 thresh = 0.5 * np.max(rast)
 
-
 score = 0
 for t in range(len(test_paths)):
 	dist = np.zeros(len(train_paths))
@@ -121,5 +117,17 @@ for t in range(len(test_paths)):
 
 print ("Accuracy = ", score / len(test_paths))
 
+
+## Testing some models on the data
+Y_train = Y_train.T
+X_transformed = X_transformed.T
+X_test_transformed = X_test_transformed.T
+Y_test = Y_test.T
+
+classifiers = [RandomForestClassifier(n_estimators=1000), LogisticRegression(), DecisionTreeClassifier()]
+
+for classifier in classifiers:
+	classifier.fit(X_transformed, Y_train)
+	print ("Accuracy = ", classifier.score(X_test_transformed, Y_test))
 
 
